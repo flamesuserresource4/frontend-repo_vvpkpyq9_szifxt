@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { PlayCircle, Twitter, Facebook, Linkedin, Reddit, ExternalLink } from 'lucide-react'
+import { useEffect, useMemo, useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { PlayCircle, Twitter, Facebook, Linkedin, Reddit, ExternalLink, X as Close } from 'lucide-react'
 
 const API = import.meta.env.VITE_BACKEND_URL || ''
 
@@ -29,12 +29,41 @@ function getYouTubeId(url = '') {
   return ''
 }
 
+function timeAgo(iso) {
+  if (!iso) return null
+  try {
+    const date = new Date(iso)
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+    const map = [
+      ['rok', 31536000, 'roky', 'rokov'],
+      ['mesiac', 2592000, 'mesiace', 'mesiacov'],
+      ['týždeň', 604800, 'týždne', 'týždňov'],
+      ['deň', 86400, 'dni', 'dní'],
+      ['hodinu', 3600, 'hodiny', 'hodín'],
+      ['minútu', 60, 'minúty', 'minút'],
+      ['sekundu', 1, 'sekundy', 'sekúnd']
+    ]
+    for (const [label, sec, plural2, plural5] of map) {
+      const val = Math.floor(diff / sec)
+      if (val >= 1) {
+        const form = val === 1 ? label : (val < 5 ? plural2 : plural5)
+        return `${val} ${form} dozadu`
+      }
+    }
+    return 'práve teraz'
+  } catch {
+    return null
+  }
+}
+
 export default function Videos({ limit, hideForm = false }) {
   const [items, setItems] = useState([])
   const [mode, setMode] = useState('url') // 'url' | 'upload'
   const [form, setForm] = useState({ title: '', url: '', thumbnail: '', description: '' })
   const [uploadForm, setUploadForm] = useState({ title: '', description: '', file: null })
   const [adding, setAdding] = useState(false)
+
+  const [active, setActive] = useState(null) // {title,url,ytId,isYouTube}
 
   const load = async () => {
     try {
@@ -82,7 +111,7 @@ export default function Videos({ limit, hideForm = false }) {
     }
   }
 
-  const list = limit ? items.slice(0, limit) : items
+  const list = useMemo(() => (limit ? items.slice(0, limit) : items), [items, limit])
 
   return (
     <div className="space-y-6">
@@ -127,11 +156,26 @@ export default function Videos({ limit, hideForm = false }) {
           const ytId = isYouTube ? getYouTubeId(it.url || '') : ''
           const thumb = it.thumbnail || (isYouTube && ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : undefined)
           const playUrl = it.url?.startsWith('/') ? `${API}${it.url}` : it.url
+          const added = timeAgo(it.created_at)
+
+          const videoRef = useRef(null)
+          const onEnter = () => {
+            if (!isYouTube && videoRef.current) {
+              videoRef.current.currentTime = 0
+              videoRef.current.muted = true
+              videoRef.current.play().catch(()=>{})
+            }
+          }
+          const onLeave = () => {
+            if (!isYouTube && videoRef.current) {
+              videoRef.current.pause()
+            }
+          }
 
           return (
             <motion.div key={idx} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5, delay: idx*0.03}} className="rounded-2xl border border-blue-500/20 bg-slate-900/40 overflow-hidden">
               {/* Media preview */}
-              <div className="relative group">
+              <div className="relative group" onMouseEnter={onEnter} onMouseLeave={onLeave}>
                 {isYouTube ? (
                   thumb ? (
                     <img src={thumb} alt={it.title} className="w-full aspect-video object-cover" />
@@ -141,6 +185,7 @@ export default function Videos({ limit, hideForm = false }) {
                 ) : (
                   playUrl ? (
                     <video
+                      ref={videoRef}
                       src={playUrl}
                       className="w-full aspect-video object-cover bg-black"
                       preload="metadata"
@@ -153,11 +198,11 @@ export default function Videos({ limit, hideForm = false }) {
                   )
                 )}
                 {playUrl && (
-                  <a href={playUrl} target="_blank" rel="noreferrer" className="absolute inset-0 flex items-center justify-center">
+                  <button onClick={() => setActive({ ...it, isYouTube, ytId, playUrl })} className="absolute inset-0 flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                       <PlayCircle className="w-16 h-16 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
                     </div>
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -166,9 +211,10 @@ export default function Videos({ limit, hideForm = false }) {
                   <div>
                     <div className="text-white font-semibold leading-tight">{it.title}</div>
                     {it.description ? <div className="text-blue-200/80 text-sm mt-1">{it.description}</div> : null}
+                    {added ? <div className="text-blue-300/60 text-xs mt-1">Pridané: {added}</div> : null}
                   </div>
                   {playUrl && (
-                    <a href={playUrl} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white transition-colors" title="Otvoriť">
+                    <a href={playUrl} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white transition-colors" title="Otvoriť v novom okne">
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
@@ -198,6 +244,38 @@ export default function Videos({ limit, hideForm = false }) {
           )
         })}
       </div>
+
+      {/* Modal player */}
+      <AnimatePresence>
+        {active && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{scale:0.97, y: 20}} animate={{scale:1, y:0}} exit={{scale:0.98, opacity:0}} className="w-full max-w-5xl">
+              <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900">
+                <button onClick={() => setActive(null)} className="absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white">
+                  <Close className="w-4 h-4" />
+                </button>
+                <div className="w-full aspect-video bg-black">
+                  {active.isYouTube ? (
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${active.ytId}?autoplay=1&rel=0`}
+                      title={active.title}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={active.playUrl} className="w-full h-full" controls autoPlay playsInline />
+                  )}
+                </div>
+                <div className="p-4 border-t border-white/10">
+                  <div className="text-white font-semibold">{active.title}</div>
+                  {active.description ? <div className="text-blue-200/80 text-sm mt-1">{active.description}</div> : null}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
