@@ -5,7 +5,7 @@ const API = import.meta.env.VITE_BACKEND_URL || ''
 
 function buildShareLinks(item) {
   const pageUrl = encodeURIComponent(item.url)
-  const text = encodeURIComponent(`${item.title} – pozrite si video`) // can be adjusted
+  const text = encodeURIComponent(`${item.title} – pozrite si video`)
   return {
     twitter: `https://twitter.com/intent/tweet?url=${pageUrl}&text=${text}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`,
@@ -14,7 +14,7 @@ function buildShareLinks(item) {
   }
 }
 
-export default function Videos() {
+export default function Videos({ limit, hideForm = false }) {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ title: '', url: '', thumbnail: '', description: '' })
   const [adding, setAdding] = useState(false)
@@ -44,23 +44,27 @@ export default function Videos() {
     }
   }
 
+  const list = limit ? items.slice(0, limit) : items
+
   return (
     <div className="space-y-6">
-      <motion.div initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.6}} className="rounded-2xl border border-blue-500/20 bg-slate-800/50 p-6">
-        <h3 className="text-white font-bold text-xl mb-4">Pridať video</h3>
-        <form onSubmit={addVideo} className="grid md:grid-cols-4 gap-3">
-          <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="Názov" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} required />
-          <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="URL videa (YouTube alebo MP4)" value={form.url} onChange={e=>setForm({...form, url: e.target.value})} required />
-          <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="Thumbnail (nepovinné)" value={form.thumbnail} onChange={e=>setForm({...form, thumbnail: e.target.value})} />
-          <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40 md:col-span-2" placeholder="Popis (nepovinné)" value={form.description} onChange={e=>setForm({...form, description: e.target.value})} />
-          <div className="md:col-span-2 flex justify-end">
-            <button disabled={adding} className="rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 px-4 py-2 text-white font-semibold transition-colors w-full md:w-auto">{adding ? 'Pridávam…' : 'Pridať video'}</button>
-          </div>
-        </form>
-      </motion.div>
+      {!hideForm && (
+        <motion.div initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.6}} className="rounded-2xl border border-blue-500/20 bg-slate-800/50 p-6">
+          <h3 className="text-white font-bold text-xl mb-4">Pridať video</h3>
+          <form onSubmit={addVideo} className="grid md:grid-cols-4 gap-3">
+            <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="Názov" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} required />
+            <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="URL videa (YouTube alebo MP4)" value={form.url} onChange={e=>setForm({...form, url: e.target.value})} required />
+            <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40" placeholder="Thumbnail (nepovinné)" value={form.thumbnail} onChange={e=>setForm({...form, thumbnail: e.target.value})} />
+            <input className="rounded-lg bg-slate-900/60 border border-blue-500/20 px-3 py-2 text-blue-100 placeholder-blue-300/40 md:col-span-2" placeholder="Popis (nepovinné)" value={form.description} onChange={e=>setForm({...form, description: e.target.value})} />
+            <div className="md:col-span-2 flex justify-end">
+              <button disabled={adding} className="rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 px-4 py-2 text-white font-semibold transition-colors w-full md:w-auto">{adding ? 'Pridávam…' : 'Pridať video'}</button>
+            </div>
+          </form>
+        </motion.div>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {items.map((it, idx) => {
+        {list.map((it, idx) => {
           const share = buildShareLinks(it)
           const isYouTube = /youtu\.be|youtube\.com/.test(it.url)
           const thumb = it.thumbnail || (isYouTube ? `https://img.youtube.com/vi/${(it.url.match(/[?&]v=([^&]+)/)?.[1]) || (it.url.split('/').pop())}/hqdefault.jpg` : undefined)
