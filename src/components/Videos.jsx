@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PlayCircle, Twitter, Facebook, Linkedin, Reddit, ExternalLink, X as Close } from 'lucide-react'
 
@@ -149,101 +150,111 @@ export default function Videos({ limit, hideForm = false }) {
         </motion.div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {list.map((it, idx) => {
-          const share = buildShareLinks(it)
-          const isYouTube = /youtu\.be|youtube\.com/.test(it.url || '')
-          const ytId = isYouTube ? getYouTubeId(it.url || '') : ''
-          const thumb = it.thumbnail || (isYouTube && ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : undefined)
-          const playUrl = it.url?.startsWith('/') ? `${API}${it.url}` : it.url
-          const added = timeAgo(it.created_at)
+      {list.length === 0 ? (
+        <div className="rounded-2xl border border-blue-500/20 bg-slate-900/40 p-8 text-center">
+          <div className="text-white font-semibold text-lg mb-2">Zatiaľ tu nie sú žiadne videá</div>
+          <div className="text-blue-200/80 mb-4">Pridajte prvé video cez URL alebo upload súboru.</div>
+          {hideForm ? (
+            <Link to="/videa" className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors">Pridať prvé video</Link>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {list.map((it, idx) => {
+            const share = buildShareLinks(it)
+            const isYouTube = /youtu\.be|youtube\.com/.test(it.url || '')
+            const ytId = isYouTube ? getYouTubeId(it.url || '') : ''
+            const thumb = it.thumbnail || (isYouTube && ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : undefined)
+            const playUrl = it.url?.startsWith('/') ? `${API}${it.url}` : it.url
+            const added = timeAgo(it.created_at)
 
-          const videoRef = useRef(null)
-          const onEnter = () => {
-            if (!isYouTube && videoRef.current) {
-              videoRef.current.currentTime = 0
-              videoRef.current.muted = true
-              videoRef.current.play().catch(()=>{})
+            const videoRef = useRef(null)
+            const onEnter = () => {
+              if (!isYouTube && videoRef.current) {
+                videoRef.current.currentTime = 0
+                videoRef.current.muted = true
+                videoRef.current.play().catch(()=>{})
+              }
             }
-          }
-          const onLeave = () => {
-            if (!isYouTube && videoRef.current) {
-              videoRef.current.pause()
+            const onLeave = () => {
+              if (!isYouTube && videoRef.current) {
+                videoRef.current.pause()
+              }
             }
-          }
 
-          return (
-            <motion.div key={idx} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5, delay: idx*0.03}} className="rounded-2xl border border-blue-500/20 bg-slate-900/40 overflow-hidden">
-              {/* Media preview */}
-              <div className="relative group" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-                {isYouTube ? (
-                  thumb ? (
-                    <img src={thumb} alt={it.title} className="w-full aspect-video object-cover" />
+            return (
+              <motion.div key={idx} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5, delay: idx*0.03}} className="rounded-2xl border border-blue-500/20 bg-slate-900/40 overflow-hidden">
+                {/* Media preview */}
+                <div className="relative group" onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                  {isYouTube ? (
+                    thumb ? (
+                      <img src={thumb} alt={it.title} className="w-full aspect-video object-cover" />
+                    ) : (
+                      <div className="w-full aspect-video bg-slate-800/60" />
+                    )
                   ) : (
-                    <div className="w-full aspect-video bg-slate-800/60" />
-                  )
-                ) : (
-                  playUrl ? (
-                    <video
-                      ref={videoRef}
-                      src={playUrl}
-                      className="w-full aspect-video object-cover bg-black"
-                      preload="metadata"
-                      muted
-                      playsInline
-                      controls={false}
-                    />
-                  ) : (
-                    <div className="w-full aspect-video bg-slate-800/60" />
-                  )
-                )}
-                {playUrl && (
-                  <button onClick={() => setActive({ ...it, isYouTube, ytId, playUrl })} className="absolute inset-0 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <PlayCircle className="w-16 h-16 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
-                    </div>
-                  </button>
-                )}
-              </div>
-
-              <div className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-white font-semibold leading-tight">{it.title}</div>
-                    {it.description ? <div className="text-blue-200/80 text-sm mt-1">{it.description}</div> : null}
-                    {added ? <div className="text-blue-300/60 text-xs mt-1">Pridané: {added}</div> : null}
-                  </div>
+                    playUrl ? (
+                      <video
+                        ref={videoRef}
+                        src={playUrl}
+                        className="w-full aspect-video object-cover bg-black"
+                        preload="metadata"
+                        muted
+                        playsInline
+                        controls={false}
+                      />
+                    ) : (
+                      <div className="w-full aspect-video bg-slate-800/60" />
+                    )
+                  )}
                   {playUrl && (
-                    <a href={playUrl} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white transition-colors" title="Otvoriť v novom okne">
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    <button onClick={() => setActive({ ...it, isYouTube, ytId, playUrl })} className="absolute inset-0 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PlayCircle className="w-16 h-16 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
+                      </div>
+                    </button>
                   )}
                 </div>
 
-                {/* Share icons */}
-                <div className="flex items-center gap-2 pt-1">
-                  <a href={share.twitter} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/90 hover:bg-sky-500 text-white" title="Zdieľať na X/Twitter">
-                    <Twitter className="w-4 h-4" />
-                  </a>
-                  <a href={share.facebook} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-700/90 hover:bg-blue-700 text-white" title="Zdieľať na Facebook">
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                  <a href={share.linkedin} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-sky-700/80 hover:bg-sky-700 text-white" title="Zdieľať na LinkedIn">
-                    <Linkedin className="w-4 h-4" />
-                  </a>
-                  <a href={share.reddit} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-orange-600/80 hover:bg-orange-600 text-white" title="Zdieľať na Reddit">
-                    <Reddit className="w-4 h-4" />
-                  </a>
-                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-white font-semibold leading-tight">{it.title}</div>
+                      {it.description ? <div className="text-blue-200/80 text-sm mt-1">{it.description}</div> : null}
+                      {added ? <div className="text-blue-300/60 text-xs mt-1">Pridané: {added}</div> : null}
+                    </div>
+                    {playUrl && (
+                      <a href={playUrl} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white transition-colors" title="Otvoriť v novom okne">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
 
-                <div className="text-xs text-blue-300/70 pt-1">
-                  Poznámka: Priame automatické publikovanie na TikTok/Instagram vyžaduje prepojenie s oficiálnymi účtami a schválené API. Vieme doplniť po prepojení účtov.
+                  {/* Share icons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <a href={share.twitter} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-sky-500/90 hover:bg-sky-500 text-white" title="Zdieľať na X/Twitter">
+                      <Twitter className="w-4 h-4" />
+                    </a>
+                    <a href={share.facebook} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-700/90 hover:bg-blue-700 text-white" title="Zdieľať na Facebook">
+                      <Facebook className="w-4 h-4" />
+                    </a>
+                    <a href={share.linkedin} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-sky-700/80 hover:bg-sky-700 text-white" title="Zdieľať na LinkedIn">
+                      <Linkedin className="w-4 h-4" />
+                    </a>
+                    <a href={share.reddit} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-orange-600/80 hover:bg-orange-600 text-white" title="Zdieľať na Reddit">
+                      <Reddit className="w-4 h-4" />
+                    </a>
+                  </div>
+
+                  <div className="text-xs text-blue-300/70 pt-1">
+                    Poznámka: Priame automatické publikovanie na TikTok/Instagram vyžaduje prepojenie s oficiálnymi účtami a schválené API. Vieme doplniť po prepojení účtov.
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Modal player */}
       <AnimatePresence>
