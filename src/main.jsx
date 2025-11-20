@@ -6,18 +6,23 @@ import About from './pages/About'
 import VideosPage from './pages/VideosPage'
 import ReformsPage from './pages/ReformsPage'
 import ContactPage from './pages/ContactPage'
+import ErrorBoundary from './ErrorBoundary'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const Root = () => (
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/o-mne" element={<About />} />
-        <Route path="/videa" element={<VideosPage />} />
-        <Route path="/reformy" element={<ReformsPage />} />
-        <Route path="/kontakt" element={<ContactPage />} />
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>,
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/o-mne" element={<About />} />
+          <Route path="/videa" element={<VideosPage />} />
+          <Route path="/reformy" element={<ReformsPage />} />
+          <Route path="/kontakt" element={<ContactPage />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
+  </React.StrictMode>
 )
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />)
