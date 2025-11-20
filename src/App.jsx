@@ -2,6 +2,7 @@ import Hero from './components/Hero'
 import Reforms from './components/Reforms'
 import ContactChat from './components/ContactChat'
 import Bio from './components/Bio'
+import Videos from './components/Videos'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
             <div className="font-extrabold text-white tracking-tight">Ivan Noskovič</div>
             <nav className="flex gap-6 text-sm">
               <a href="#zivotopis" className="hover:text-white">Môj životopis</a>
+              <a href="#videa" className="hover:text-white">Moje videá</a>
               <a href="#reformy" className="hover:text-white">Reformy</a>
               <a href="#kontakt" className="hover:text-white">Kontakt & Chat</a>
             </nav>
@@ -25,6 +27,11 @@ function App() {
           <section id="zivotopis" className="space-y-6">
             <h2 className="text-2xl md:text-3xl font-bold text-white">Môj životopis</h2>
             <Bio />
+          </section>
+
+          <section id="videa" className="space-y-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">Moje videá</h2>
+            <Videos />
           </section>
 
           <section id="reformy" className="space-y-6">
